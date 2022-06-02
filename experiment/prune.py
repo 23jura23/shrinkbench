@@ -18,6 +18,7 @@ class PruningExperiment(TrainingExperiment):
                  path=None,
                  dl_kwargs=dict(),
                  train_kwargs=dict(),
+                 strategy_kwargs=dict(),
                  debug=False,
                  pretrained=True,
                  resume=None,
@@ -27,15 +28,15 @@ class PruningExperiment(TrainingExperiment):
         super(PruningExperiment, self).__init__(dataset, model, seed, path, dl_kwargs, train_kwargs, debug, pretrained, resume, resume_optim, save_freq)
         self.add_params(strategy=strategy, compression=compression)
 
-        self.apply_pruning(strategy, compression)
+        self.apply_pruning(strategy, compression, strategy_kwargs)
 
         self.path = path
         self.save_freq = save_freq
 
-    def apply_pruning(self, strategy, compression):
+    def apply_pruning(self, strategy, compression, strategy_kwargs):
         constructor = getattr(strategies, strategy)
         x, y = next(iter(self.train_dl))
-        self.pruning = constructor(self.model, x, y, compression=compression)
+        self.pruning = constructor(self.model, x, y, compression=compression, **strategy_kwargs)
         self.pruning.apply()
         printc("Masked model", color='GREEN')
 
