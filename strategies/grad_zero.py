@@ -3,13 +3,10 @@ from collections import defaultdict
 
 import numpy as np
 
-from . import threshold2_mask
 from .utils import (fraction_threshold,
-                    fraction_mask,
                     flatten_importances,
                     importance_masks, threshold_mask)
-from ..pruning import (LayerPruning,
-                       VisionPruning,
+from ..pruning import (VisionPruning,
                        GradientMixin)
 
 
