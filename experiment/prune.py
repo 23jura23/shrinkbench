@@ -35,8 +35,11 @@ class PruningExperiment(TrainingExperiment):
 
     def apply_pruning(self, strategy, compression, strategy_kwargs):
         constructor = getattr(strategies, strategy)
-        x, y = next(iter(self.train_dl))
-        self.pruning = constructor(self.model, x, y, compression=compression, **strategy_kwargs)
+        train_x, train_y = next(iter(self.train_dl))
+        val_x, val_y = next(iter(self.val_dl))
+        strategy_kwargs['val_x'] = val_x
+        strategy_kwargs['val_y'] = val_y
+        self.pruning = constructor(self.model, train_x, train_y, compression=compression, **strategy_kwargs)
         self.pruning.apply()
         printc("Masked model", color='GREEN')
 
