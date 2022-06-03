@@ -4,7 +4,7 @@ import string
 import pandas as pd
 
 COLUMNS = ['dataset', 'model',
-           'strategy', 'compression',
+           'strategy', 'strategy_name', 'compression',
            'size', 'size_nz', 'real_compression',
            'flops', 'flops_nz', 'speedup',
            'pre_acc1', 'pre_acc5', 'post_acc1', 'post_acc5',
