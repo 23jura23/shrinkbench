@@ -29,7 +29,7 @@ def fraction_threshold(tensor, fraction):
     return threshold
 
 
-def threshold_mask(tensor, threshold, dtype=float):
+def threshold_mask(tensor, threshold):
     """Given a fraction or threshold, compute binary mask
 
     Arguments:
@@ -43,15 +43,15 @@ def threshold_mask(tensor, threshold, dtype=float):
     """
     assert isinstance(tensor, np.ndarray)
     idx = np.logical_and(tensor < threshold, tensor > -threshold)
-    mask = np.ones_like(tensor, dtype=dtype)
+    mask = np.ones_like(tensor)
     mask[idx] = 0
     return mask
 
 
-def fraction_mask(tensor, fraction, dtype=float):
+def fraction_mask(tensor, fraction):
     assert isinstance(tensor, np.ndarray)
     threshold = fraction_threshold(tensor, fraction)
-    return threshold_mask(tensor, threshold, dtype=dtype)
+    return threshold_mask(tensor, threshold)
 
 
 def flatten_importances(importances):
