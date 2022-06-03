@@ -164,7 +164,7 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                         fraction = abs(true_fraction)
                         threshold = fraction_threshold(param, fraction)
 
-                    mask = threshold_mask(param, threshold)
+                    mask = threshold_mask(param, threshold, dtype=int)
                     if negate:
                         mask = 1 - mask
                     masks_p.append(mask)
@@ -179,7 +179,7 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                         mask &= 1 - masks_p[i]
                     mask = 1 - mask
 
-                masks[mod][p] = mask
+                masks[mod][p] = np.array(mask, dtype=float)
 
         return masks
 
