@@ -127,6 +127,9 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
             if f"{param_name}_threshold" in pruning_params and f"{param_name}_fraction" in pruning_params:
                 raise ValueError(f"Only on of '{param_name}_threshold' and '{param_name}_fraction' must be present")
 
+            # Attention: framework authors use fraction as "fraction to keep", which is not convenient in my opinion
+            # so our fraction is "fraction to remove", e.g. 0.05 means removing 0.05 neurons with the lowest importance
+
             if f"{param_name}_threshold" in pruning_params:
                 setattr(self, f"{param_name}_threshold", pruning_params.get(f"{param_name}_threshold"))
                 setattr(self, f"{param_name}_fraction", None)
@@ -135,7 +138,8 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                 setattr(self, f"{param_name}_fraction", pruning_params.get(f"{param_name}_fraction"))
             else:
                 setattr(self, f"{param_name}_threshold", None)
-                setattr(self, f"{param_name}_fraction", self.fraction)
+                setattr(self, f"{param_name}_fraction", 1-self.fraction)
+
 
         for param_name in self.param_names:
             _init_fraction_and_threshold(param_name)
@@ -162,7 +166,7 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                         true_fraction = getattr(self, f"{param_name}_fraction")
                         negate = true_fraction < 0
                         fraction = abs(true_fraction)
-                        threshold = fraction_threshold(param, fraction)
+                        threshold = np.quantile(param, fraction)
 
                     mask = threshold_mask(param, threshold)
                     if negate:
