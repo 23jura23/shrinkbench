@@ -179,7 +179,7 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                 elif self.union_method == "all":
                     mask = np.invert(mask)
                     for i in range(1, len(masks_p)):
-                        mask &= masks_p[i]
+                        mask &= np.invert(masks_p[i])
                     mask = np.invert(mask)
 
                 masks[mod][p] = mask
