@@ -154,8 +154,8 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                 for param_name in self.param_names:
                     param = getattr(self, f"{param_name}s")[mod][p]  # e.g. self.mags[mod][p]
 
-                    if hasattr(self, f"{param_name}_threshold"):
-                        true_threshold = getattr(self, f"{param_name}_threshold")
+                    true_threshold = getattr(self, f"{param_name}_threshold")
+                    if true_threshold is not None:
                         negate = true_threshold < 0
                         threshold = abs(true_threshold)
                     else:
