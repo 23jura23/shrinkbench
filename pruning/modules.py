@@ -44,7 +44,8 @@ class MaskedModule(nn.Module):
         self.bias = layer.bias
 
         self.weight_mask = torch.ones_like(self.weight)
-        self.bias_mask = torch.ones_like(self.bias)
+        if self.bias is not None:
+            self.bias_mask = torch.ones_like(self.bias)
 
         # use register_buffer so model.to(device) works on fixed tensors like masks
         self.register_buffer("weight_mask", None)
