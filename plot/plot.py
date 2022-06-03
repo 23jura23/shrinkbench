@@ -1,4 +1,7 @@
 from collections import defaultdict
+
+from matplotlib.ticker import FormatStrFormatter
+
 from ..util import AutoMap
 import matplotlib.pyplot as plt
 
@@ -108,6 +111,7 @@ def plot_df(df,
                 dfg_ = dfg_.sort_values(x_column)
                 plt.plot(dfg_[x_column].values, dfg_[y_column].values, **kwargs)
 
+    plt.axes().xaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
     plt.xlabel(x_column)
     plt.ylabel(y_column)
     if x_column in ('compression', 'speedup'):
