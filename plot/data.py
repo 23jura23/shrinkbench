@@ -28,6 +28,7 @@ def df_from_results(results_path, glob='*'):
             params['dataset'],
             params['model'],
             params['strategy'],
+            params['strategy_name'],
             params['compression'],
             # Metrics
             metrics['size'],

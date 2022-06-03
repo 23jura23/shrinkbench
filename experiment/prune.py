@@ -14,6 +14,7 @@ class PruningExperiment(TrainingExperiment):
                  model,
                  strategy,
                  compression,
+                 strategy_name=None,
                  seed=42,
                  path=None,
                  dl_kwargs=dict(),
@@ -24,9 +25,11 @@ class PruningExperiment(TrainingExperiment):
                  resume=None,
                  resume_optim=False,
                  save_freq=10):
+        if strategy_name is None:
+            strategy_name = strategy
 
         super(PruningExperiment, self).__init__(dataset, model, seed, path, dl_kwargs, train_kwargs, debug, pretrained, resume, resume_optim, save_freq)
-        self.add_params(strategy=strategy, compression=compression)
+        self.add_params(strategy=strategy, compression=compression, strategy_name=strategy_name)
 
         self.apply_pruning(strategy, compression, strategy_kwargs)
 
