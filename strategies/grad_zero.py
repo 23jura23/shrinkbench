@@ -92,11 +92,11 @@ class GlobalMagGradValMin(GlobalMagGradValF):
         beta = pruning_params.get('beta') or 1.0
         gamma = pruning_params.get('gamma') or 1.0
         delta = pruning_params.get('delta') or 1.0
-        pruning_params['F'] = lambda mag, train_grad, val_grad: np.min(
+        pruning_params['F'] = lambda mag, train_grad, val_grad: np.minimum.reduce([
             beta * np.abs(mag),
             gamma * np.abs(train_grad),
             delta * np.abs(val_grad)
-        )
+        ])
 
         super().__init__(model, inputs, outputs, compression, **pruning_params)
 
