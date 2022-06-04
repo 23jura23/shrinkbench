@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 import numpy as np
 import torch
+import copy
 
 from . import TrainingExperiment
 
@@ -14,7 +15,10 @@ from ..util import printc
 # TODO
 def regrow(module, param_name, param, regrow_mask):
     with torch.no_grad():
-        module[param_name].data[regrow_mask] = 1.0
+        print(np.sum(regrow_mask))
+        new_param = copy.deepcopy(param)
+        new_param[regrow_mask] = 1.0
+        getattr(module, param_name).data.copy_(torch.from_numpy(new_param).float())
 
 
 class TrainingPruningExperiment(TrainingExperiment):
@@ -51,9 +55,7 @@ class TrainingPruningExperiment(TrainingExperiment):
         self.strategy_kwargs = strategy_kwargs
 
         self.add_params(strategy=strategy, compression=compression, strategy_name=strategy_name,
-                        strategy_kwargs=strategy_kwargs,
-                        initial_strategy=initial_strategy, initial_compression=initial_compression, initial_strategy_name=initial_strategy_name,
-                        initial_strategy_kwargs=initial_strategy_kwargs)
+                        initial_strategy=initial_strategy, initial_compression=initial_compression, initial_strategy_name=initial_strategy_name)
 
         self.apply_pruning(initial_strategy, initial_compression, initial_strategy_kwargs)
 
@@ -104,18 +106,22 @@ class TrainingPruningExperiment(TrainingExperiment):
                     regrowed_mask[regrowed_idx] = 1
 
                     start = 0
-                    for module, mod_params in prunable_params:
+                    for module, mod_params in prunable_params.items():
                         regrow_masks = {}
-                        for param_name, param in mod_params:
+                        for param_name, param in mod_params.items():
                             param_length = param.size
-                            regrow_mask = regrowed_mask[start:param_length].reshape(param.shape)
+                            regrow_mask = regrowed_mask[start:(start + param_length)].reshape(param.shape)
                             regrow(module, param_name, param, regrow_mask)
                             regrow_masks[param_name] = regrow_mask
                             start += param_length
+
                         def _calc_new_mask(old_mask, new_mask):
-                            assert np.none(old_mask * new_mask)
-                            return old_mask + new_mask
-                        module.set_masks(**{f'{k}_mask': _calc_new_mask(getattr(module, f'{k}_mask'), v) for k, v in regrow_masks.items()})
+                            old_mask = old_mask.detach().cpu().numpy()
+                            assert not np.any(old_mask * new_mask)
+                            return np.float32((old_mask + new_mask))
+
+                        module.set_masks(**{f'{k}_mask': _calc_new_mask(getattr(module, f'{k}_mask'), v) for k, v in
+                                            regrow_masks.items()})
                 #####
                 self.train(epoch)
                 self.eval(epoch)

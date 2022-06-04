@@ -29,11 +29,11 @@ def mask_module(module, masks):
         if submodule in masks:
             mask_kwargs = {k+'_mask': v for k, v in masks[submodule].items()}
             if isinstance(submodule, MaskedModule):
-                new_masks = {k: _calc_new_mask(getattr(submodule, k), v) for k, v in mask_kwargs}
-                masked_parameters += sum(_calc_diff(getattr(submodule, k), v) for k, v in mask_kwargs)
+                new_masks = {k: _calc_new_mask(getattr(submodule, k), v) for k, v in mask_kwargs.items()}
+                masked_parameters += sum(_calc_diff(getattr(submodule, k), v) for k, v in mask_kwargs.items())
                 submodule.set_masks(**new_masks)
             else:
-                masked_parameters += sum(_calc_diff(None, v) for k, v in mask_kwargs)
+                masked_parameters += sum(_calc_diff(None, v) for v in mask_kwargs.values())
                 masked = masked_modules[type(submodule)](submodule, **mask_kwargs)
                 new_children[name] = masked
 
@@ -45,7 +45,7 @@ def mask_module(module, masks):
     for name, masked in new_children.items():
         setattr(module, name, masked)
 
-    return module, masked_parameters
+    return module, int(masked_parameters)
 
 
 def _calc_new_mask(old_mask, new_mask):
@@ -53,7 +53,7 @@ def _calc_new_mask(old_mask, new_mask):
     if old_mask is None:
         return new_mask
     else:
-        return old_mask * new_mask
+        return old_mask.detach().cpu().numpy() * new_mask
 
 
 def _calc_diff(old_mask, new_mask):
@@ -62,6 +62,7 @@ def _calc_diff(old_mask, new_mask):
     if old_mask is None:
         return np.sum(1 - new_mask)
     else:
+        old_mask = old_mask.detach().cpu().numpy()
         return np.sum(1 - new_mask * old_mask) - np.sum(1 - old_mask)
 
 
