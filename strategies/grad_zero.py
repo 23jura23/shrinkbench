@@ -172,7 +172,7 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                         negate = true_fraction < 0
                         fraction = abs(true_fraction)
                         param_for_threshold = param[self.mags[mod][p] != 0.0]
-                        threshold = np.quantile(param_for_threshold, fraction)
+                        threshold = np.quantile(np.abs(param_for_threshold), fraction)
 
                     mask = threshold_mask(param, threshold)
                     if negate:
