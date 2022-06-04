@@ -56,7 +56,6 @@ class PruningExperiment(TrainingExperiment):
 
         if self.pruning.compression > 1:
             self.run_epochs()
-        return self.pruning_metrics()
 
     def save_metrics(self):
         self.metrics = self.pruning_metrics()
