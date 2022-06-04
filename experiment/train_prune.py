@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 import torch
 
-from .prune import PruningExperiment
+from . import TrainingExperiment
 
 from .. import strategies
 from ..metrics import model_size, flops
@@ -17,14 +17,14 @@ def regrow(module, param_name, param, regrow_mask):
         module[param_name].data[regrow_mask] = 1.0
 
 
-class TrainingPruningExperiment(PruningExperiment):
+class TrainingPruningExperiment(TrainingExperiment):
 
     def __init__(self,
                  dataset,
                  model,
                  initial_strategy,
                  strategy,
-                 inital_compression,
+                 initial_compression,
                  compression,
                  strategy_name=None,
                  initial_strategy_name=None,
@@ -46,12 +46,16 @@ class TrainingPruningExperiment(PruningExperiment):
         if initial_strategy_name is None:
             initial_strategy_name = initial_strategy_name
 
+        self.strategy = strategy
+        self.compression = compression
+        self.strategy_kwargs = strategy_kwargs
+
         self.add_params(strategy=strategy, compression=compression, strategy_name=strategy_name,
                         strategy_kwargs=strategy_kwargs,
-                        initial_strategy=initial_strategy, inital_compression=inital_compression, initial_strategy_name=initial_strategy_name,
+                        initial_strategy=initial_strategy, initial_compression=initial_compression, initial_strategy_name=initial_strategy_name,
                         initial_strategy_kwargs=initial_strategy_kwargs)
 
-        self.apply_pruning(self.initial_strategy, self.inital_compression, self.initial_strategy_kwargs)
+        self.apply_pruning(initial_strategy, initial_compression, initial_strategy_kwargs)
 
         self.path = path
         self.save_freq = save_freq
