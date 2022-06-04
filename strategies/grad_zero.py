@@ -123,6 +123,7 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
         super().__init__(model, inputs, outputs, compression, **pruning_params)
 
         self.param_names = ["mag", "train_grad", "val_grad"]
+        self.global_train_grad_threshold = pruning_params.get("global_train_grad_threshold", False)
 
         def _init_fraction_and_threshold(param_name):
             if f"{param_name}_threshold" in pruning_params and f"{param_name}_fraction" in pruning_params:
@@ -153,6 +154,16 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
     def model_masks(self, prunable=None):
         masks = defaultdict(dict)
 
+        global_threshold = None
+        if self.global_train_grad_threshold:
+            train_grads = [
+                self.train_grads[mod][p][param != 0.0] for mod, mod_params in self.mags.items() for p, param in mod_params.items()
+            ]
+            train_grads = np.concatenate(train_grads)
+            true_fraction = getattr(self, "train_grad_fraction")
+            fraction = abs(true_fraction)
+            global_threshold = np.quantile(np.abs(train_grads), fraction)
+
         for mod, mod_params in self.mags.items():
             for p in mod_params:
                 masks_p = []
@@ -167,6 +178,10 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                     if true_threshold is not None:
                         negate = true_threshold < 0
                         threshold = abs(true_threshold)
+                    elif param_name == 'train_grad' and global_threshold is not None:
+                        true_fraction = getattr(self, f"{param_name}_fraction")
+                        negate = true_fraction < 0
+                        threshold = global_threshold
                     else:
                         true_fraction = getattr(self, f"{param_name}_fraction")
                         negate = true_fraction < 0
