@@ -32,7 +32,7 @@ class GradientMixin(Pruning):
             "Inputs and Outputs must be provided for gradients"
         self._param_gradients = get_param_gradients(self.model, self.inputs, self.outputs)
 
-    def param_gradients(self, update_anyway=False, only_prunable=True):
+    def param_gradients(self, only_prunable=True, update_anyway=False):
         if not hasattr(self, "_param_gradients") or update_anyway:
             self.update_gradients()
         if only_prunable:
