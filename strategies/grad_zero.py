@@ -43,7 +43,7 @@ class GlobalMagGradValBased(GradientMixin, VisionPruning, ABC):
 
         self.inputs = self.val_x
         self.outputs = self.val_y
-        self.val_grads = self.param_gradients()
+        self.val_grads = self.param_gradients(update_anyway=True)
 
         self.inputs = self.train_x
         self.outputs = self.train_y
