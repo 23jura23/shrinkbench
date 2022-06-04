@@ -1,4 +1,5 @@
 import json
+import numpy as np
 
 from .train import TrainingExperiment
 
@@ -36,11 +37,39 @@ class PruningExperiment(TrainingExperiment):
         self.path = path
         self.save_freq = save_freq
 
+    def _calc_nonzero_prunable_params(self, mags):
+        return sum(sum(np.sum(p != 0) for p in mod_params) for mod_params in mags.values())
+
+    def _calculate_total_compressed_params(self, strategy, strategy_kwargs, train_x, train_y):
+        constructor = getattr(strategies, strategy)
+        pruning = constructor(self.model, train_x, train_y, compression=1.0, **strategy_kwargs)
+
+        num_prunable_params = sum(sum(p.size for p in mod_params) for mod_params in pruning.mags.values())
+
+        fraction = strategy_kwargs['train_grad_fraction']
+        if fraction < 0:
+            fraction = 1 - abs(fraction)
+
+        return int(num_prunable_params * fraction)
+
     def apply_pruning(self, strategy, compression, strategy_kwargs):
+        # TODO For now it works only with this strategy
+        assert strategy == 'GlobalMagGradValSeparate'
         constructor = getattr(strategies, strategy)
         iters = strategy_kwargs['iters']
+
+        one_iter_params = self._calculate_total_compressed_params(strategy, strategy_kwargs, *next(iter(self.train_dl)))
+        one_iter_params /= iters
+
+        one_iter_strategy_kwargs = {}
+        if 'train_grad_threshold' in strategy_kwargs:
+            one_iter_strategy_kwargs['train_grad_threshold'] = strategy_kwargs['train_grad_threshold']
+        else:
+            one_iter_strategy_kwargs['train_grad_fraction'] = 1.0
+
         for i, (train_x, train_y) in zip(range(iters), self.train_dl):
-            self.pruning = constructor(self.model, train_x, train_y, compression=compression, **strategy_kwargs)
+            self.pruning = constructor(self.model, train_x, train_y, compression=1.0, **one_iter_strategy_kwargs)
+            self.train_grad_fraction = one_iter_params / self._calc_nonzero_prunable_params(self.pruning.mags)
             self.pruning.apply()
         printc("Masked model", color='GREEN')
 
