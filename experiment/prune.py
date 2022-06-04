@@ -56,8 +56,10 @@ class PruningExperiment(TrainingExperiment):
         # TODO For now it works only with this strategy
         assert strategy == 'GlobalMagGradValSeparate'
         constructor = getattr(strategies, strategy)
-        iters = strategy_kwargs['iters']
 
+        iters = strategy_kwargs['iters']
+        if iters == 0:
+            return
         one_iter_params = self._calculate_total_compressed_params(strategy, strategy_kwargs, *next(iter(self.train_dl)))
         one_iter_params /= iters
 
