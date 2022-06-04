@@ -38,15 +38,16 @@ class GlobalMagGradValBased(GradientMixin, VisionPruning, ABC):
         self.mags = self.params()
 
         self.train_grads = self.param_gradients()
-        self.val_x = pruning_params['val_x']
-        self.val_y = pruning_params['val_y']
+        if 'val_x' in pruning_params and 'val_y' in pruning_params:
+            self.val_x = pruning_params['val_x']
+            self.val_y = pruning_params['val_y']
 
-        self.inputs = self.val_x
-        self.outputs = self.val_y
-        self.val_grads = self.param_gradients()
+            self.inputs = self.val_x
+            self.outputs = self.val_y
+            self.val_grads = self.param_gradients()
 
-        self.inputs = self.train_x
-        self.outputs = self.train_y
+            self.inputs = self.train_x
+            self.outputs = self.train_y
 
 
 class GlobalMagGradValF(GlobalMagGradValBased):
@@ -62,7 +63,7 @@ class GlobalMagGradValF(GlobalMagGradValBased):
             {p: self.F(
                 self.mags[mod][p],
                 self.train_grads[mod][p],
-                self.val_grads[mod][p]
+                self.val_grads[mod][p] if hasattr(self, 'val_grads') else None
             )
                 for p in mod_params}
             for mod, mod_params in self.mags.items()}
@@ -136,9 +137,9 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
             elif f"{param_name}_fraction" in pruning_params:
                 setattr(self, f"{param_name}_threshold", None)
                 setattr(self, f"{param_name}_fraction", pruning_params.get(f"{param_name}_fraction"))
-            else:
-                setattr(self, f"{param_name}_threshold", None)
-                setattr(self, f"{param_name}_fraction", 1-self.fraction)
+            #else:
+            #    setattr(self, f"{param_name}_threshold", None)
+            #    setattr(self, f"{param_name}_fraction", 1-self.fraction)
 
 
         for param_name in self.param_names:
@@ -156,6 +157,10 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
             for p in mod_params:
                 masks_p = []
                 for param_name in self.param_names:
+                    if not hasattr(self, f"{param_name}_threshold"):
+                        continue
+                    elif not hasattr(self, f"{param_name}s"):
+                        raise ValueError(f"The model does not have {param_name}s parameters when applying pruning")
                     param = getattr(self, f"{param_name}s")[mod][p]  # e.g. self.mags[mod][p]
 
                     true_threshold = getattr(self, f"{param_name}_threshold")
