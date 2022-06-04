@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .modules import masked_modules, _ensure_tensor, _same_device, MaskedModule
+from .modules import masked_modules, _ensure_tensor, _same_device, MaskedModule, _same_shape
 
 
 def mask_module(module, masks):
@@ -22,13 +22,18 @@ def mask_module(module, masks):
     # Need to store the new children so iteration won't break
     new_children = {}
 
+    masked_parameters = 0
+
     for name, submodule in module.named_children():
 
         if submodule in masks:
             mask_kwargs = {k+'_mask': v for k, v in masks[submodule].items()}
             if isinstance(submodule, MaskedModule):
-                submodule.set_masks(**mask_kwargs)
+                new_masks = {k: _calc_new_mask(getattr(submodule, k), v) for k, v in mask_kwargs}
+                masked_parameters += sum(_calc_diff(getattr(submodule, k), v) for k, v in mask_kwargs)
+                submodule.set_masks(**new_masks)
             else:
+                masked_parameters += sum(_calc_diff(None, v) for k, v in mask_kwargs)
                 masked = masked_modules[type(submodule)](submodule, **mask_kwargs)
                 new_children[name] = masked
 
@@ -40,7 +45,24 @@ def mask_module(module, masks):
     for name, masked in new_children.items():
         setattr(module, name, masked)
 
-    return module
+    return module, masked_parameters
+
+
+def _calc_new_mask(old_mask, new_mask):
+    assert old_mask is not None and new_mask is not None
+    if old_mask is None:
+        return new_mask
+    else:
+        return old_mask * new_mask
+
+
+def _calc_diff(old_mask, new_mask):
+    assert new_mask is not None
+    assert old_mask is None or _same_shape(new_mask, old_mask)
+    if old_mask is None:
+        return np.sum(1 - new_mask)
+    else:
+        return np.sum(1 - new_mask * old_mask) - np.sum(1 - old_mask)
 
 
 def apply_masks(module, masks):
