@@ -22,6 +22,10 @@ def regrow(module, param_name, param, regrow_mask):
 
 
 class TrainingPruningExperiment(TrainingExperiment):
+    """
+    При применении strategy ей в том числе будут передаваться параметры, которые уже были занулены.
+    Их можно отличить тем, что они тождественно равны 0 (в принципе как и их градиенты).
+    """
 
     def __init__(self,
                  dataset,
