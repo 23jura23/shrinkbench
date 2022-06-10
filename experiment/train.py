@@ -189,7 +189,7 @@ class TrainingExperiment(Experiment):
                     x.pop('label')
                     y = batch['label']
                     x, y = self._dict_to_device(x, self.device), y.to(self.device)
-                    yhat = self.model(**x)
+                    yhat = self.model(**x).logits
                 else:
                     x, y = batch
                     x, y = x.to(self.device), y.to(self.device)

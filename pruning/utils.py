@@ -114,7 +114,7 @@ def get_param_gradients(model, inputs, outputs, loss_func=None, by_module=True, 
     training = model.training
     model.train()
     if is_multiple_input_model:
-        pred = model(**inputs)
+        pred = model(**inputs).logits
     else:
         pred = model(inputs)
     loss = loss_func(pred, outputs)
