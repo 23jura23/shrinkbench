@@ -1,6 +1,8 @@
 import pathlib
 import os
 
+from datasets import load_dataset
+from transformers import AutoTokenizer
 from torchvision import transforms, datasets
 
 from . import places365
@@ -156,4 +158,12 @@ def Places365(train=True, path=None):
         preproc = [transforms.Resize(256), transforms.CenterCrop(224)]
     dataset = dataset_builder('Places365', train, normalize, preproc, path)
     dataset.shape = (3, 224, 224)
+    return dataset
+
+
+def emotion(train=True, path=None):
+    dataset = load_dataset('emotion', split='train' if train else 'validation')
+    tokenizer = AutoTokenizer.from_pretrained('bert-base-cased')
+    dataset = dataset.map(lambda e: tokenizer(e['sentence1'], truncation=True, padding='max_length'), batched=True)
+    dataset.set_format(type='torch', columns=['input_ids', 'token_type_ids', 'attention_mask', 'label'])
     return dataset
