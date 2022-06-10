@@ -104,7 +104,7 @@ def get_gradients(model, inputs, outputs):
     pass
 
 
-def get_param_gradients(model, inputs, outputs, loss_func=None, by_module=True):
+def get_param_gradients(model, inputs, outputs, loss_func=None, by_module=True, is_multiple_input_model=False):
 
     gradients = OrderedDict()
 
@@ -113,7 +113,10 @@ def get_param_gradients(model, inputs, outputs, loss_func=None, by_module=True):
 
     training = model.training
     model.train()
-    pred = model(inputs)
+    if is_multiple_input_model:
+        pred = model(**inputs)
+    else:
+        pred = model(inputs)
     loss = loss_func(pred, outputs)
     loss.backward()
 

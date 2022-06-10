@@ -36,6 +36,7 @@ class TrainingExperiment(Experiment):
                  path=None,
                  dl_kwargs=dict(),
                  train_kwargs=dict(),
+                 is_multiple_input_model=False,
                  debug=False,
                  pretrained=False,
                  resume=None,
@@ -51,6 +52,7 @@ class TrainingExperiment(Experiment):
         params['dl_kwargs'] = dl_kwargs
         params['train_kwargs'] = str(train_kwargs)
         self.add_params(**params)
+        self.is_multiple_input_model = is_multiple_input_model
         # Save params
 
         self.build_dataloader(dataset, **dl_kwargs)
@@ -159,6 +161,9 @@ class TrainingExperiment(Experiment):
         except KeyboardInterrupt:
             printc(f"\nInterrupted at epoch {epoch}. Tearing Down", color='RED')
 
+    def _dict_to_device(self, d, device):
+        return {k: v.to(device) for k, v in d.items()}
+
     def run_epoch(self, train, epoch=0):
         if train:
             self.model.train()
@@ -178,8 +183,12 @@ class TrainingExperiment(Experiment):
 
         with torch.set_grad_enabled(train):
             for i, (x, y) in enumerate(epoch_iter, start=1):
-                x, y = x.to(self.device), y.to(self.device)
-                yhat = self.model(x)
+                if self.is_multiple_input_model:
+                    x, y = self._dict_to_device(x, self.device), y.to(self.device)
+                    yhat = self.model(**x)
+                else:
+                    x, y = x.to(self.device), y.to(self.device)
+                    yhat = self.model(x)
                 loss = self.loss_func(yhat, y)
                 if train:
                     loss.backward()

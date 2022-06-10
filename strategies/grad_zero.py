@@ -29,7 +29,7 @@ def threshold_n_mask(tensors, thresholds):
 
 
 class GlobalMagGradValBased(GradientMixin, VisionPruning, ABC):
-    def __init__(self, model, inputs=None, outputs=None, compression=1,
+    def __init__(self, model, inputs=None, outputs=None, compression=1, is_multiple_input_model=False,
                  **pruning_params):
         super().__init__(model, inputs, outputs, compression, **pruning_params)
         self.train_x = inputs
@@ -37,21 +37,21 @@ class GlobalMagGradValBased(GradientMixin, VisionPruning, ABC):
 
         self.mags = self.params()
 
-        self.train_grads = self.param_gradients()
+        self.train_grads = self.param_gradients(is_multiple_input_model=is_multiple_input_model)
         self.val_x = pruning_params['val_x']
         self.val_y = pruning_params['val_y']
 
         self.inputs = self.val_x
         self.outputs = self.val_y
-        self.val_grads = self.param_gradients(update_anyway=True)
+        self.val_grads = self.param_gradients(update_anyway=True, is_multiple_input_model=is_multiple_input_model)
 
         self.inputs = self.train_x
         self.outputs = self.train_y
 
 
 class GlobalMagGradValF(GlobalMagGradValBased):
-    def __init__(self, model, inputs=None, outputs=None, compression=1, **pruning_params):
-        super().__init__(model, inputs, outputs, compression, **pruning_params)
+    def __init__(self, model, inputs=None, outputs=None, compression=1, is_multiple_input_model=False, **pruning_params):
+        super().__init__(model, inputs, outputs, compression, is_multiple_input_model, **pruning_params)
 
         # F: mag -> train_grad -> grad_val -> float
         # the lowest by absolute value will be masked

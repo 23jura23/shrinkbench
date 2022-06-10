@@ -54,7 +54,7 @@ class PruningExperiment(TrainingExperiment):
         val_x, val_y = next(iter(self._get_pruning_val_dl()))
         strategy_kwargs['val_x'] = val_x
         strategy_kwargs['val_y'] = val_y
-        self.pruning = constructor(self.model, train_x, train_y, compression=compression, **strategy_kwargs)
+        self.pruning = constructor(self.model, train_x, train_y, compression=compression, is_multiple_input_model=self.is_multiple_input_model, **strategy_kwargs)
         self.pruning.apply(save=save_pruning)
         printc("Masked model", color='GREEN')
 

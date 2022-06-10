@@ -27,14 +27,14 @@ class ActivationMixin(Pruning):
 
 class GradientMixin(Pruning):
 
-    def update_gradients(self):
+    def update_gradients(self, is_multiple_input_model):
         assert self.inputs is not None and self.outputs is not None, \
             "Inputs and Outputs must be provided for gradients"
-        self._param_gradients = get_param_gradients(self.model, self.inputs, self.outputs)
+        self._param_gradients = get_param_gradients(self.model, self.inputs, self.outputs, is_multiple_input_model=is_multiple_input_model)
 
-    def param_gradients(self, only_prunable=True, update_anyway=False):
+    def param_gradients(self, only_prunable=True, update_anyway=False, is_multiple_input_model=False):
         if not hasattr(self, "_param_gradients") or update_anyway:
-            self.update_gradients()
+            self.update_gradients(is_multiple_input_model)
         if only_prunable:
             return {module: self._param_gradients[module] for module in self.prunable}
         else:
