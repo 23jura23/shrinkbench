@@ -1,5 +1,7 @@
 import json
 
+from torch.utils.data import DataLoader
+
 from .train import TrainingExperiment
 
 from .. import strategies
@@ -17,6 +19,8 @@ class PruningExperiment(TrainingExperiment):
                  strategy_name=None,
                  seed=42,
                  path=None,
+                 pruning_dl_kwargs=dict(),
+                 save_pruning=None,
                  dl_kwargs=dict(),
                  train_kwargs=dict(),
                  strategy_kwargs=dict(),
@@ -31,19 +35,27 @@ class PruningExperiment(TrainingExperiment):
             strategy_name = strategy
         self.add_params(strategy=strategy, compression=compression, strategy_name=strategy_name)
 
-        self.apply_pruning(strategy, compression, strategy_kwargs)
+        self.apply_pruning(strategy, compression, strategy_kwargs, save_pruning)
 
         self.path = path
         self.save_freq = save_freq
 
-    def apply_pruning(self, strategy, compression, strategy_kwargs):
+        self.pruning_dl_kwargs = pruning_dl_kwargs
+
+    def _get_pruning_train_dl(self):
+        return DataLoader(self.train_dataset, shuffle=True, **self.pruning_dl_kwargs)
+
+    def _get_pruning_val_dl(self):
+        return DataLoader(self.val_dataset, shuffle=False, **self.pruning_dl_kwargs)
+
+    def apply_pruning(self, strategy, compression, strategy_kwargs, save_pruning):
         constructor = getattr(strategies, strategy)
-        train_x, train_y = next(iter(self.train_dl))
-        val_x, val_y = next(iter(self.val_dl))
+        train_x, train_y = next(iter(self._get_pruning_train_dl()))
+        val_x, val_y = next(iter(self._get_pruning_val_dl()))
         strategy_kwargs['val_x'] = val_x
         strategy_kwargs['val_y'] = val_y
         self.pruning = constructor(self.model, train_x, train_y, compression=compression, **strategy_kwargs)
-        self.pruning.apply()
+        self.pruning.apply(save=save_pruning)
         printc("Masked model", color='GREEN')
 
     def run(self):
