@@ -23,13 +23,14 @@ class PruningExperiment(TrainingExperiment):
                  save_pruning=None,
                  dl_kwargs=dict(),
                  train_kwargs=dict(),
+                 is_multiple_input_model=False,
                  strategy_kwargs=dict(),
                  debug=False,
                  pretrained=True,
                  resume=None,
                  resume_optim=False,
                  save_freq=10):
-        super(PruningExperiment, self).__init__(dataset, model, seed, path, dl_kwargs, train_kwargs, debug, pretrained, resume, resume_optim, save_freq)
+        super(PruningExperiment, self).__init__(dataset, model, seed, path, dl_kwargs, train_kwargs, is_multiple_input_model, debug, pretrained, resume, resume_optim, save_freq)
 
         if strategy_name is None:
             strategy_name = strategy
