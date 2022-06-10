@@ -49,7 +49,7 @@ class TrainingExperiment(Experiment):
 
         params = locals()
         params['dl_kwargs'] = dl_kwargs
-        params['train_kwargs'] = train_kwargs
+        params['train_kwargs'] = str(train_kwargs)
         self.add_params(**params)
         # Save params
 

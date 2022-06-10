@@ -35,12 +35,12 @@ class PruningExperiment(TrainingExperiment):
             strategy_name = strategy
         self.add_params(strategy=strategy, compression=compression, strategy_name=strategy_name)
 
+        self.pruning_dl_kwargs = pruning_dl_kwargs
+
         self.apply_pruning(strategy, compression, strategy_kwargs, save_pruning)
 
         self.path = path
         self.save_freq = save_freq
-
-        self.pruning_dl_kwargs = pruning_dl_kwargs
 
     def _get_pruning_train_dl(self):
         return DataLoader(self.train_dataset, shuffle=True, **self.pruning_dl_kwargs)
