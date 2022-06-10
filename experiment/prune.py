@@ -101,14 +101,22 @@ class PruningExperiment(TrainingExperiment):
         metrics['size_nz'] = size_nz
         metrics['compression_ratio'] = size / size_nz
 
-        x, y = next(iter(self.val_dl))
-        x, y = x.to(self.device), y.to(self.device)
+        val_batch = next(iter(self.val_dl))
+        if self.is_multiple_input_model:
+            x = copy.copy(val_batch)
+            x.pop('label')
+            x = self._dict_to_device(x, self.device)
+            y = val_batch['label']
+        else:
+            x, y = val_batch
+            x = x.to(self.device)
+        y = y.to(self.device)
 
         # FLOPS
-        ops, ops_nz = flops(self.model, x)
-        metrics['flops'] = ops
-        metrics['flops_nz'] = ops_nz
-        metrics['theoretical_speedup'] = ops / ops_nz
+        #ops, ops_nz = flops(self.model, x)
+        #metrics['flops'] = ops
+        #metrics['flops_nz'] = ops_nz
+        #metrics['theoretical_speedup'] = ops / ops_nz
 
         # Accuracy
         loss, acc1, acc5 = self.run_epoch(False, -1)

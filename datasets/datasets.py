@@ -163,7 +163,7 @@ def Places365(train=True, path=None):
 
 def emotion(train=True, path=None):
     dataset = load_dataset('emotion', split='train' if train else 'validation')
-    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+    tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
     dataset = dataset.map(lambda e: tokenizer(e['text'], truncation=True, max_length=100, padding='max_length'), batched=True)
-    dataset.set_format(type='torch', columns=['input_ids', 'token_type_ids', 'attention_mask', 'label'])
+    dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'label'])
     return dataset
