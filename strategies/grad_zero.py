@@ -57,7 +57,7 @@ class GlobalMagGradValF(GlobalMagGradValBased):
         # the lowest by absolute value will be masked
         self.F = pruning_params['F']
 
-    def model_masks(self, prunable=None):
+    def model_masks(self, prunable=None, save=None):
         importances = {mod:
             {p: self.F(
                 self.mags[mod][p],
@@ -66,6 +66,19 @@ class GlobalMagGradValF(GlobalMagGradValBased):
             )
                 for p in mod_params}
             for mod, mod_params in self.mags.items()}
+
+        savable_parameters = {
+            'mags': self.mags,
+            'train_grads': self.train_grads,
+            'val_grads': self.val_grads,
+            'importances': importances
+        }
+        for savable_p in savable_parameters:
+            if savable_p in save:
+                print(f'Save {savable_p}')
+                savable_dict = {str(mod): {k: v for k, v in mod_params.items()} for mod, mod_params in savable_parameters[savable_p].items()}
+                np.save(f"{save[savable_p]}.npy", savable_dict)
+
         flat_importances = flatten_importances(importances)
         threshold = fraction_threshold(flat_importances, self.fraction)
         masks = importance_masks(importances, threshold)

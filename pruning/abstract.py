@@ -35,7 +35,7 @@ class Pruning(ABC):
             setattr(self, k, v)
 
     @abstractmethod
-    def model_masks(self, prunable=None):
+    def model_masks(self, prunable=None, save=None):
         """Compute masks for a given model
 
         """
@@ -43,9 +43,9 @@ class Pruning(ABC):
         pass
         # return masks
 
-    def apply(self, masks=None):
+    def apply(self, masks=None, save=None):
         if masks is None:
-            masks = self.model_masks()
+            masks = self.model_masks(save=save)
         return mask_module(self.model, masks)
 
     @abstractmethod
