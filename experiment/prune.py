@@ -1,4 +1,5 @@
 import json
+import copy
 
 from torch.utils.data import DataLoader
 
@@ -51,8 +52,19 @@ class PruningExperiment(TrainingExperiment):
 
     def apply_pruning(self, strategy, compression, strategy_kwargs, save_pruning):
         constructor = getattr(strategies, strategy)
-        train_x, train_y = next(iter(self._get_pruning_train_dl()))
-        val_x, val_y = next(iter(self._get_pruning_val_dl()))
+        train_batch = next(iter(self._get_pruning_train_dl()))
+        val_batch = next(iter(self._get_pruning_val_dl()))
+        if self.is_multiple_input_model:
+            train_x = copy.copy(train_batch)
+            train_x.pop('label')
+            train_y = train_batch['label']
+
+            val_x = copy.copy(val_batch)
+            val_x.pop('label')
+            val_y = val_batch['label']
+        else:
+            train_x, train_y = train_batch
+            val_x, val_y = val_batch
         strategy_kwargs['val_x'] = val_x
         strategy_kwargs['val_y'] = val_y
         self.pruning = constructor(self.model, train_x, train_y, compression=compression, is_multiple_input_model=self.is_multiple_input_model, **strategy_kwargs)

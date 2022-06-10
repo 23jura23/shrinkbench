@@ -1,3 +1,4 @@
+import copy
 import pathlib
 import time
 
@@ -182,11 +183,15 @@ class TrainingExperiment(Experiment):
         epoch_iter.set_description(f"{prefix.capitalize()} Epoch {epoch}/{self.epochs}")
 
         with torch.set_grad_enabled(train):
-            for i, (x, y) in enumerate(epoch_iter, start=1):
+            for i, batch in enumerate(epoch_iter, start=1):
                 if self.is_multiple_input_model:
+                    x = copy.copy(batch)
+                    x.pop('label')
+                    y = batch['label']
                     x, y = self._dict_to_device(x, self.device), y.to(self.device)
                     yhat = self.model(**x)
                 else:
+                    x, y = batch
                     x, y = x.to(self.device), y.to(self.device)
                     yhat = self.model(x)
                 loss = self.loss_func(yhat, y)
