@@ -98,9 +98,9 @@ def CIFAR10(train=True, path=None):
     mean, std = [0.491, 0.482, 0.447], [0.247, 0.243, 0.262]
     normalize = transforms.Normalize(mean=mean, std=std)
     if train:
-        preproc = [transforms.RandomHorizontalFlip(), transforms.RandomCrop(32, 4)]
+        preproc = [transforms.RandomHorizontalFlip(), transforms.RandomCrop(32, 4), transforms.Resize((224, 224))]
     else:
-        preproc = []
+        preproc = [transforms.Resize((224, 224))]
     dataset = dataset_builder('CIFAR10', train, normalize, preproc, path)
     dataset.shape = (3, 32, 32)
     return dataset
