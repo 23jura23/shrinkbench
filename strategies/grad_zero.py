@@ -193,10 +193,11 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
         super().__init__(model, inputs, outputs, compression, **pruning_params)
 
         self.param_names = ["mag", "train_grad", "val_grad"]
+        self.use_fraction_as_threshold = pruning_params.get("use_fraction_as_threshold") or False
         self.use_val_grad = pruning_params.get("use_val_grad") or False
         self.mag_ub = pruning_params.get("mag_ub") or 1.
         self.grad_ub = pruning_params.get("grad_ub") or 1.
-        self.val_grad_lb = pruning_params.get("val_grad_lb") or 0.
+        self.val_grad_lb = pruning_params.get("val_grad_lb") or (0.9 if self.use_fraction_as_threshold else 0.)
 
     def model_masks(self, prunable=None):
         fraction_l, fraction_r = 0., 1.
@@ -227,10 +228,11 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                         else:
                             raise ValueError()
 
-                        threshold = np.quantile(np.abs(param), true_fraction)
+                        if self.use_fraction_as_threshold:
+                            threshold = true_fraction
+                        else:
+                            threshold = np.quantile(np.abs(param), true_fraction)
                         # print(f"{param_name}: {threshold}")
-
-                        # threshold = true_fraction
 
                         mask = threshold_mask(param, threshold)
                         # if negate:
@@ -270,7 +272,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
         if not self.use_val_grad:
             print("Val threshold: ignored")
         else:
-            print(f"Val threshold: ban if < {fraction_l*self.val_grad_lb}")
+            print(f"Val threshold: ban if < {self.val_grad_lb + fraction_l * (1 - self.val_grad_lb)}")
         return masks
 
 # class LayerMagGradZero(GradientMixin, LayerPruning, VisionPruning):
