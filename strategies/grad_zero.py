@@ -200,6 +200,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
         self.val_grad_lb = pruning_params.get("val_grad_lb") or (0.9 if self.use_fraction_as_threshold else 0.)
         self.val_grad_fraction = pruning_params.get("val_grad_fraction")
         self.val_grad_threshold = pruning_params.get("val_grad_threshold")
+        self.val_grad_and_or = pruning_params.get("val_grad_and_or") or "and"
 
     def model_masks(self, prunable=None):
         fraction_l, fraction_r = 0., 1.
@@ -249,9 +250,14 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
 
                     mask = masks_p[0]
                     mask = 1 - mask
-                    for i in range(1, len(masks_p)):
+                    for i in range(1, len(masks_p) - 1):
                         mask *= 1 - masks_p[i]
-                    mask = 1 - mask
+                    if self.val_grad_and_or == "and":
+                        mask *= 1 - masks_p[-1]
+                        mask = 1 - mask
+                    else:
+                        mask = 1 - mask
+                        mask *= masks_p[-1]
 
                     masks[mod][p] = np.array(mask)
 
@@ -275,8 +281,8 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
             else:
                 fraction_l = fraction
         print(f"Choose global fraction: {fraction_l}")
-        print(f"Mag threshold: ban if < {fraction_l*self.mag_ub}")
-        print(f"Grad threshold: ban if < {fraction_l*self.grad_ub}")
+        print(f"Mag threshold: ban if < {fraction_l * self.mag_ub}")
+        print(f"Grad threshold: ban if < {fraction_l * self.grad_ub}")
         if not self.use_val_grad:
             print("Val threshold: ignored")
         else:
