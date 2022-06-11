@@ -265,6 +265,12 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
             else:
                 fraction_l = fraction
         print(f"Choose global fraction: {fraction_l}")
+        print(f"Mag threshold: ban if < {fraction_l*self.mag_ub}")
+        print(f"Grad threshold: ban if < {fraction_l*self.grad_ub}")
+        if self.use_val_grad:
+            print("Val threshold: ignored")
+        else:
+            print(f"Val threshold: ban if < {fraction_l*self.val_grad_lb}")
         return masks
 
 # class LayerMagGradZero(GradientMixin, LayerPruning, VisionPruning):
