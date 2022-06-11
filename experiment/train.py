@@ -8,6 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.backends import cudnn
 from tqdm import tqdm
+from sklearn.metrics import f1_score
 import json
 
 from .base import Experiment
@@ -179,6 +180,9 @@ class TrainingExperiment(Experiment):
         acc1 = OnlineStats()
         acc5 = OnlineStats()
 
+        preds = []
+        true = []
+
         epoch_iter = tqdm(dl)
         epoch_iter.set_description(f"{prefix.capitalize()} Epoch {epoch}/{self.epochs}")
 
@@ -190,10 +194,16 @@ class TrainingExperiment(Experiment):
                     y = batch['label']
                     x, y = self._dict_to_device(x, self.device), y.to(self.device)
                     yhat = self.model(**x).logits
+                    if not train:
+                        true.extend(y.detach().cpu())
+                        preds.extend(torch.argmax(yhat.detach(), dim=1).cpu())
                 else:
                     x, y = batch
                     x, y = x.to(self.device), y.to(self.device)
                     yhat = self.model(x)
+                    if not train:
+                        true.extend(y.detach().cpu())
+                        preds.extend(torch.argmax(yhat.detach(), dim=1).cpu())
                 loss = self.loss_func(yhat, y)
                 if train:
                     loss.backward()
@@ -208,11 +218,19 @@ class TrainingExperiment(Experiment):
 
                 epoch_iter.set_postfix(loss=total_loss.mean, top1=acc1.mean, top5=acc5.mean)
 
-        self.log(**{
-            f'{prefix}_loss': total_loss.mean,
-            f'{prefix}_acc1': acc1.mean,
-            f'{prefix}_acc5': acc5.mean,
-        })
+        if train:
+            self.log(**{
+                f'{prefix}_loss': total_loss.mean,
+                f'{prefix}_acc1': acc1.mean,
+                f'{prefix}_acc5': acc5.mean,
+            })
+        else:
+            self.log(**{
+                f'{prefix}_loss': total_loss.mean,
+                f'{prefix}_acc1': acc1.mean,
+                f'{prefix}_acc5': acc5.mean,
+                f'{prefix}_f1': f1_score(true, preds, average='micro')
+            })
 
         return total_loss.mean, acc1.mean, acc5.mean
 
@@ -226,7 +244,7 @@ class TrainingExperiment(Experiment):
     def train_metrics(self):
         return ['epoch', 'timestamp',
                 'train_loss', 'train_acc1', 'train_acc5',
-                'val_loss', 'val_acc1', 'val_acc5',
+                'val_loss', 'val_acc1', 'val_acc5', 'val_f1'
                 ]
 
     def __repr__(self):
