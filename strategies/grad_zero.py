@@ -198,6 +198,8 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
         self.mag_ub = pruning_params.get("mag_ub") or 1.
         self.grad_ub = pruning_params.get("grad_ub") or 1.
         self.val_grad_lb = pruning_params.get("val_grad_lb") or (0.9 if self.use_fraction_as_threshold else 0.)
+        self.val_grad_fraction = pruning_params.get("val_grad_fraction")
+        self.val_grad_threshold = pruning_params.get("val_grad_threshold")
 
     def model_masks(self, prunable=None):
         fraction_l, fraction_r = 0., 1.
@@ -221,10 +223,13 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                         elif param_name == "train_grad":
                             true_fraction = fraction * self.grad_ub
                         elif param_name == "val_grad":
-                            if self.use_val_grad:
-                                true_fraction = self.val_grad_lb + fraction * (1 - self.val_grad_lb)
+                            if self.val_grad_fraction is not None:
+                                true_fraction = self.val_grad_fraction
                             else:
-                                true_fraction = 1.
+                                if self.use_val_grad:
+                                    true_fraction = self.val_grad_lb + fraction * (1 - self.val_grad_lb)
+                                else:
+                                    true_fraction = 1.
                         else:
                             raise ValueError()
 
@@ -232,6 +237,9 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                             threshold = true_fraction
                         else:
                             threshold = np.quantile(np.abs(param), true_fraction)
+
+                        if param_name == "val_grad" and self.val_grad_threshold is not None:
+                            threshold = self.val_grad_threshold
                         # print(f"{param_name}: {threshold}")
 
                         mask = threshold_mask(param, threshold)
