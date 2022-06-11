@@ -18,7 +18,7 @@ def random_mask(tensor, fraction):
 
 class RandomPruning(VisionPruning):
 
-    def model_masks(self):
+    def model_masks(self, prunable=None, save=None):
         params = self.params()
         masks = map_importances(lambda x: random_mask(x, self.fraction), params)
         return masks
