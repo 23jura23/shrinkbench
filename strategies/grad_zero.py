@@ -228,7 +228,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                             raise ValueError()
 
                         threshold = np.quantile(np.abs(param), true_fraction)
-                        print(f"{param_name}: {threshold}")
+                        # print(f"{param_name}: {threshold}")
 
                         mask = threshold_mask(param, threshold)
                         # if negate:
@@ -250,8 +250,8 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
             total_size, _ = model_size(self.model)
             prunable_size = sum([model_size(m)[0] for m in self.prunable])
             nonprunable_size = total_size - prunable_size
-            print(total_size, nonprunable_size, prunable_size)
-            print(prunable_size_h, non_pruned_size_h, prunable_size_h - non_pruned_size_h)
+            print(it, total_size, nonprunable_size, prunable_size)
+            print(it, prunable_size_h, non_pruned_size_h, prunable_size_h - non_pruned_size_h)
 
             real_fraction = non_pruned_size_h / prunable_size_h  # real fraction to keep
 
