@@ -217,7 +217,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                         # fraction = abs(true_fraction)
                         if param_name == "mag":
                             true_fraction = fraction * self.mag_ub
-                        elif param_name == "grad":
+                        elif param_name == "train_grad":
                             true_fraction = fraction * self.grad_ub
                         elif param_name == "val_grad":
                             if self.use_val_grad:
