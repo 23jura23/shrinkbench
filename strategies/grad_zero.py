@@ -207,7 +207,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
             prunable_size_h = 0
             non_pruned_size_h = 0
 
-            for mod, mod_params in self.params():
+            for mod, mod_params in self.params().items():
                 for p in mod_params:
                     masks_p = []
                     for param_name in self.param_names:
