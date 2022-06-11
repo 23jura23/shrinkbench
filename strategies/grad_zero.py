@@ -228,6 +228,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                             raise ValueError()
 
                         threshold = np.quantile(param, true_fraction)
+                        print(f"{param_name}: {threshold}")
 
                         mask = threshold_mask(param, threshold)
                         # if negate:
@@ -258,7 +259,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                 fraction_r = fraction
             else:
                 fraction_l = fraction
-
+        print(f"Choose global fraction: {fraction_l}")
         return masks
 
 # class LayerMagGradZero(GradientMixin, LayerPruning, VisionPruning):
