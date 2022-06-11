@@ -227,8 +227,10 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                         else:
                             raise ValueError()
 
-                        threshold = np.quantile(np.abs(param), true_fraction)
+                        # threshold = np.quantile(np.abs(param), true_fraction)
                         # print(f"{param_name}: {threshold}")
+
+                        threshold = true_fraction
 
                         mask = threshold_mask(param, threshold)
                         # if negate:
