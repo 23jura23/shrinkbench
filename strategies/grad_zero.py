@@ -138,8 +138,7 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                 setattr(self, f"{param_name}_fraction", pruning_params.get(f"{param_name}_fraction"))
             else:
                 setattr(self, f"{param_name}_threshold", None)
-                setattr(self, f"{param_name}_fraction", 1-self.fraction)
-
+                setattr(self, f"{param_name}_fraction", 1 - self.fraction)
 
         for param_name in self.param_names:
             _init_fraction_and_threshold(param_name)
@@ -152,7 +151,7 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
     def model_masks(self, prunable=None):
         masks = defaultdict(dict)
 
-        for mod, mod_params in self.mags.items():
+        for mod, mod_params in self.params():
             for p in mod_params:
                 masks_p = []
                 for param_name in self.param_names:
@@ -184,6 +183,81 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
                     mask = 1 - mask
 
                 masks[mod][p] = np.array(mask)
+
+        return masks
+
+
+# set fraction for magnitude, train_grad and (optionally) val_grad basing on the total compression level
+class GlobalMagGradTopVal(GlobalMagGradValBased):
+    def __init__(self, model, inputs=None, outputs=None, compression=1, **pruning_params):
+        super().__init__(model, inputs, outputs, compression, **pruning_params)
+
+        self.param_names = ["mag", "train_grad", "val_grad"]
+        self.use_val_grad = pruning_params.get("use_val_grad") or False
+        self.mag_ub = pruning_params.get("mag_ub") or 0.3
+        self.grad_ub = pruning_params.get("grad_ub") or 0.3
+        self.val_grad_lb = pruning_params.get("val_grad_lb") or 0.7
+
+    def model_masks(self, prunable=None):
+        fraction_l, fraction_r = 0., 1.
+        masks = defaultdict(dict)
+        for it in range(100):
+            fraction = (fraction_l + fraction_r) / 2
+
+            prunable_size_h = 0
+            non_pruned_size_h = 0
+
+            for mod, mod_params in self.params():
+                for p in mod_params:
+                    masks_p = []
+                    for param_name in self.param_names:
+                        param = getattr(self, f"{param_name}s")[mod][p]  # e.g. self.mags[mod][p]
+
+                        # negate = true_fraction < 0
+                        # fraction = abs(true_fraction)
+                        if param_name == "mag":
+                            true_fraction = fraction * self.mag_ub
+                        elif param_name == "grad":
+                            true_fraction = fraction * self.grad_ub
+                        elif param_name == "val_grad":
+                            if self.use_val_grad:
+                                true_fraction = self.val_grad_lb + fraction * (1 - self.val_grad_lb)
+                            else:
+                                true_fraction = 1.
+                        else:
+                            raise ValueError()
+
+                        threshold = np.quantile(param, true_fraction)
+
+                        mask = threshold_mask(param, threshold)
+                        # if negate:
+                        #     mask = 1 - mask
+                        masks_p.append(mask)
+
+                    mask = masks_p[0]
+                    mask = 1 - mask
+                    for i in range(1, len(masks_p)):
+                        mask *= 1 - masks_p[i]
+                    mask = 1 - mask
+
+                    masks[mod][p] = np.array(mask)
+
+                    prunable_size_h += np.prod(masks[mod][p].shape)
+                    non_pruned_size_h += np.sum(masks[mod][p])
+
+            from ..metrics import model_size
+            total_size, _ = model_size(self.model)
+            prunable_size = sum([model_size(m)[0] for m in self.prunable])
+            nonprunable_size = total_size - prunable_size
+            print(total_size, nonprunable_size, prunable_size)
+            print(prunable_size_h, non_pruned_size_h, prunable_size_h - non_pruned_size_h)
+
+            real_fraction = non_pruned_size_h / prunable_size_h  # real fraction to keep
+
+            if real_fraction < self.fraction:
+                fraction_r = fraction
+            else:
+                fraction_l = fraction
 
         return masks
 
