@@ -15,7 +15,7 @@ CIFAR100(os.path.join(datapath, "CIFAR100"), train=True, download=True)
 
 num_epochs = 3
 
-for model, dataset in [("vgg_bn_drop", "CIFAR10"), ("vgg_bn_drop_100", "CIFAR100"), ("resnet20", "CIFAR10")]:
+for model, dataset in [("cifar100_resnet20", "CIFAR100"),("vgg_bn_drop", "CIFAR10"),  ("resnet20", "CIFAR10")]:
     for c in [2, 4, 8, 16, 32]:
         # random
         exp_rand = PruningExperiment(dataset=dataset,
