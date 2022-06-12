@@ -254,7 +254,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                     for i in range(1, len(masks_p) - 1):
                         mask *= 1 - masks_p[i]
 
-                    pre = np.array(mask)
+                    pre = np.array(1 - mask)
                     if self.val_grad_and_or == "and":
                         mask *= 1 - masks_p[-1]
                         mask = 1 - mask
