@@ -209,6 +209,8 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
         self.val_grad_threshold = pruning_params.get("val_grad_threshold")
         self.val_grad_and_or = pruning_params.get("val_grad_and_or") or "and"
 
+        self.debug = pruning_params.get("debug") or False
+
         if not self.use_val_grad:
             self.val_grad_fraction = 1.
             self.val_grad_and_or = "and"
@@ -273,39 +275,28 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
             total_size, _ = model_size(self.model)
             prunable_size = sum([model_size(m)[0] for m in self.prunable])
             nonprunable_size = total_size - prunable_size
-            print(it, fraction)
-            print(total_size, nonprunable_size, prunable_size)
-            print(prunable_size_h, non_pruned_size_h, prunable_size_h - non_pruned_size_h)
-            print("val_grad_diff_size_h", val_grad_diff_size_h)
-            print("val_grad_size_only_h", val_grad_only_size_h, prunable_size_h - val_grad_only_size_h)
+            if self.debug:
+                print(it, fraction)
+                print(total_size, nonprunable_size, prunable_size)
+                print(prunable_size_h, non_pruned_size_h, prunable_size_h - non_pruned_size_h)
+                print("val_grad_diff_size_h", val_grad_diff_size_h)
+                print("val_grad_size_only_h", val_grad_only_size_h, prunable_size_h - val_grad_only_size_h)
 
             real_fraction = non_pruned_size_h / prunable_size_h  # real fraction to keep
-            print(real_fraction, self.fraction)
-            print()
+            if self.debug:
+                print(real_fraction, self.fraction)
+                print()
 
             if real_fraction < self.fraction:
                 fraction_r = fraction
             else:
                 fraction_l = fraction
-        print(f"Choose global fraction: {fraction_l}")
-        print(f"Mag threshold: ban if < {fraction_l * self.mag_ub}")
-        print(f"Grad threshold: ban if < {fraction_l * self.grad_ub}")
-        if not self.use_val_grad:
-            print("Val threshold: ignored")
-        else:
-            print(f"Val threshold: ban if < {self.val_grad_threshold or f'{self.val_grad_fraction}%'}")
+        if self.debug:
+            print(f"Choose global fraction: {fraction_l}")
+            print(f"Mag threshold: ban if < {fraction_l * self.mag_ub}")
+            print(f"Grad threshold: ban if < {fraction_l * self.grad_ub}")
+            if not self.use_val_grad:
+                print("Val threshold: ignored")
+            else:
+                print(f"Val threshold: ban if < {self.val_grad_threshold or f'{self.val_grad_fraction}%'}")
         return masks
-
-# class LayerMagGradZero(GradientMixin, LayerPruning, VisionPruning):
-#     def __init__(self, model, inputs=None, outputs=None, compression=1, exact_fraction=None, **pruning_params):
-#         super().__init__(model, inputs, outputs, compression, **pruning_params)
-#         if exact_fraction is not None:
-#             self.fraction = exact_fraction
-#
-#     def layer_masks(self, module):
-#         params = self.module_params(module)
-#         grads = self.module_param_gradients(module)
-#         importances = {param: np.abs(grads[param]) for param, value in params.items()}
-#         masks = {param: fraction_mask(importances[param], self.fraction)
-#                  for param, value in params.items() if value is not None}
-#         return masks
