@@ -232,17 +232,17 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
 
                         if param_name == "mag":
                             true_fraction = fraction * self.mag_ub
+                            if self.have_common_threshold:
+                                threshold = true_fraction
+                            else:
+                                threshold = np.quantile(np.abs(param), true_fraction)
                         elif param_name == "train_grad":
                             true_fraction = fraction * self.grad_ub
+                            if self.have_common_threshold:
+                                threshold = true_fraction
+                            else:
+                                threshold = np.quantile(np.abs(param), true_fraction)
                         else:
-                            raise ValueError()
-
-                        if self.have_common_threshold:
-                            threshold = true_fraction
-                        else:
-                            threshold = np.quantile(np.abs(param), true_fraction)
-
-                        if param_name == "val_grad":
                             if self.val_grad_threshold is not None:
                                 threshold = self.val_grad_threshold
                             elif self.val_grad_fraction is not None:
