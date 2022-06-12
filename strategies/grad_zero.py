@@ -193,24 +193,35 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
         super().__init__(model, inputs, outputs, compression, **pruning_params)
 
         self.param_names = ["mag", "train_grad", "val_grad"]
-        self.use_fraction_as_threshold = pruning_params.get("use_fraction_as_threshold") or False
-        self.use_val_grad = pruning_params.get("use_val_grad") or False
+        self.have_common_threshold = pruning_params.get("have_common_threshold") or True
         self.mag_ub = pruning_params.get("mag_ub") or 1.
         self.grad_ub = pruning_params.get("grad_ub") or 1.
-        self.val_grad_lb = pruning_params.get("val_grad_lb") or (0.9 if self.use_fraction_as_threshold else 0.)
+
+        self.use_val_grad = pruning_params.get("use_val_grad") or False
+
+        if not self.use_val_grad and \
+                ("val_grad_fraction" in pruning_params or
+                 "val_grad_threshold" in pruning_params or
+                 "val_grad_and_or" in pruning_params):
+            raise ValueError("use_val_grad = False, but val_grad args specified")
+
         self.val_grad_fraction = pruning_params.get("val_grad_fraction")
         self.val_grad_threshold = pruning_params.get("val_grad_threshold")
         self.val_grad_and_or = pruning_params.get("val_grad_and_or") or "and"
 
+        if not self.use_val_grad:
+            self.val_grad_fraction = 1.
+            self.val_grad_and_or = "and"
+
     def model_masks(self, prunable=None):
-        fraction_l, fraction_r = 0., 1.
+        fraction_l, fraction_r = 0., 10.
         masks = defaultdict(dict)
         for it in range(100):
             fraction = (fraction_l + fraction_r) / 2
 
             prunable_size_h = 0
             non_pruned_size_h = 0
-            val_grad_size_h = 0
+            val_grad_diff_size_h = 0
             val_grad_only_size_h = 0
 
             for mod, mod_params in self.params().items():
@@ -219,57 +230,44 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                     for param_name in self.param_names:
                         param = getattr(self, f"{param_name}s")[mod][p]  # e.g. self.mags[mod][p]
 
-                        # negate = true_fraction < 0
-                        # fraction = abs(true_fraction)
                         if param_name == "mag":
                             true_fraction = fraction * self.mag_ub
                         elif param_name == "train_grad":
                             true_fraction = fraction * self.grad_ub
-                        elif param_name == "val_grad":
-                            if self.val_grad_fraction is not None:
-                                true_fraction = self.val_grad_fraction
-                            else:
-                                if self.use_val_grad:
-                                    true_fraction = self.val_grad_lb + fraction * (1 - self.val_grad_lb)
-                                else:
-                                    true_fraction = 1.
                         else:
                             raise ValueError()
 
-                        if self.use_fraction_as_threshold:
+                        if self.have_common_threshold:
                             threshold = true_fraction
                         else:
                             threshold = np.quantile(np.abs(param), true_fraction)
 
-                        if param_name == "val_grad" and self.val_grad_threshold is not None:
-                            threshold = self.val_grad_threshold
-                        # print(f"{param_name}: {threshold}")
+                        if param_name == "val_grad":
+                            if self.val_grad_threshold is not None:
+                                threshold = self.val_grad_threshold
+                            elif self.val_grad_fraction is not None:
+                                threshold = np.quantile(np.abs(param), self.val_grad_fraction)
+                            else:
+                                raise ValueError("Either val_grad_threshold or val_grad_fraction must be set")
 
                         mask = threshold_mask(param, threshold)
-                        # if negate:
-                        #     mask = 1 - mask
                         masks_p.append(mask)
 
-                    mask = masks_p[0]
-                    mask = 1 - mask
-                    for i in range(1, len(masks_p) - 1):
-                        mask *= 1 - masks_p[i]
+                    mask = 1 - (1 - masks_p[0]) * (1 - masks_p[1])
 
-                    pre = np.array(1 - mask)
+                    pre_val = np.array(mask)
                     if self.val_grad_and_or == "and":
-                        mask *= 1 - masks_p[-1]
-                        mask = 1 - mask
+                        mask = 1 - (1 - mask) * (1 - masks_p[2])
                     else:
-                        mask = 1 - mask
-                        mask *= masks_p[-1]
-                    post = np.array(mask)
+                        mask = mask * masks_p[2]
+                    post_val = np.array(mask)
 
                     masks[mod][p] = np.array(mask)
 
                     prunable_size_h += np.prod(masks[mod][p].shape)
                     non_pruned_size_h += np.sum(masks[mod][p])
-                    val_grad_size_h += np.sum(post) - np.sum(pre)
-                    val_grad_only_size_h += np.sum(masks_p[-1])
+                    val_grad_diff_size_h += np.sum(post_val) - np.sum(pre_val)
+                    val_grad_only_size_h += np.sum(masks_p[2])
 
             from ..metrics import model_size
             total_size, _ = model_size(self.model)
@@ -278,7 +276,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
             print(it, fraction)
             print(total_size, nonprunable_size, prunable_size)
             print(prunable_size_h, non_pruned_size_h, prunable_size_h - non_pruned_size_h)
-            print("val_grad_size_h", val_grad_size_h)
+            print("val_grad_diff_size_h", val_grad_diff_size_h)
             print("val_grad_size_only_h", val_grad_only_size_h, prunable_size_h - val_grad_only_size_h)
 
             real_fraction = non_pruned_size_h / prunable_size_h  # real fraction to keep
@@ -295,7 +293,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
         if not self.use_val_grad:
             print("Val threshold: ignored")
         else:
-            print(f"Val threshold: ban if < {self.val_grad_lb + fraction_l * (1 - self.val_grad_lb)}")
+            print(f"Val threshold: ban if < {self.val_grad_threshold or f'{self.val_grad_fraction}%'}")
         return masks
 
 # class LayerMagGradZero(GradientMixin, LayerPruning, VisionPruning):
