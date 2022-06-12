@@ -211,6 +211,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
             prunable_size_h = 0
             non_pruned_size_h = 0
             val_grad_size_h = 0
+            val_grad_only_size_h = 0
 
             for mod, mod_params in self.params().items():
                 for p in mod_params:
@@ -268,6 +269,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
                     prunable_size_h += np.prod(masks[mod][p].shape)
                     non_pruned_size_h += np.sum(masks[mod][p])
                     val_grad_size_h += np.sum(post) - np.sum(pre)
+                    val_grad_only_size_h += np.sum(masks_p[-1])
 
             from ..metrics import model_size
             total_size, _ = model_size(self.model)
@@ -277,6 +279,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
             print(total_size, nonprunable_size, prunable_size)
             print(prunable_size_h, non_pruned_size_h, prunable_size_h - non_pruned_size_h)
             print("val_grad_size_h", val_grad_size_h)
+            print("val_grad_size_only_h", val_grad_only_size_h, prunable_size_h - val_grad_only_size_h)
 
             real_fraction = non_pruned_size_h / prunable_size_h  # real fraction to keep
             print(real_fraction, self.fraction)
