@@ -218,7 +218,7 @@ class GlobalMagGradTopVal(GlobalMagGradValBased):
     def model_masks(self, prunable=None):
         fraction_l, fraction_r = 0., 10.
         masks = defaultdict(dict)
-        for it in range(100):
+        for it in range(20):
             fraction = (fraction_l + fraction_r) / 2
 
             prunable_size_h = 0
