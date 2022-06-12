@@ -39,7 +39,7 @@ def plot_df(df,
     markers_column = markers
 
     if fig:
-        plt.figure(figsize=(24, 16), dpi=200)
+        plt.figure(figsize=(24, 16), dpi=100)
 
     groups = []
     if colors_column is not None:
