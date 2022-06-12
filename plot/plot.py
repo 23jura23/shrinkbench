@@ -39,7 +39,7 @@ def plot_df(df,
     markers_column = markers
 
     if fig:
-        plt.figure(figsize=(15, 8))
+        plt.figure(figsize=(24, 16), dpi=200)
 
     groups = []
     if colors_column is not None:
@@ -111,8 +111,6 @@ def plot_df(df,
                 dfg_ = dfg_.sort_values(x_column)
                 plt.plot(dfg_[x_column].values, dfg_[y_column].values, **kwargs)
 
-    plt.figure(figsize=(24, 18), dpi=200)
-    plt.axes().xaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
     plt.xlabel(x_column)
     plt.ylabel(y_column)
     if x_column in ('compression', 'speedup'):
