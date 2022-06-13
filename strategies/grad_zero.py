@@ -49,12 +49,13 @@ class GlobalMagGradValBased(GradientMixin, VisionPruning, ABC):
         self.outputs = self.train_y
 
 
+# mask based on arbitrary function F
 class GlobalMagGradValF(GlobalMagGradValBased):
     def __init__(self, model, inputs=None, outputs=None, compression=1, **pruning_params):
         super().__init__(model, inputs, outputs, compression, **pruning_params)
 
-        # F: mag -> train_grad -> grad_val -> float
-        # the lowest by absolute value will be masked
+        # F: mag -> train_grad -> grad_val -> tensor[float]
+        # synapses with the lowest by absolute value will be masked with 0 (and so removed)
         self.F = pruning_params['F']
 
     def model_masks(self, prunable=None):
@@ -71,7 +72,7 @@ class GlobalMagGradValF(GlobalMagGradValBased):
         masks = importance_masks(importances, threshold)
         return masks
 
-
+# use F(mag, train_grad, val_grad) = abs(beta * mag + gamma * train_grad + delta * val_grad)
 class GlobalMagGradValSum(GlobalMagGradValF):
     def __init__(self, model, inputs=None, outputs=None, compression=1, **pruning_params):
         # following Belay's original notation for beta and gamma
@@ -86,6 +87,7 @@ class GlobalMagGradValSum(GlobalMagGradValF):
         super().__init__(model, inputs, outputs, compression, **pruning_params)
 
 
+# use F(mag, train_grad, val_grad) = min(abs(beta * mag), abs(gamma * train_grad), abs(delta * val_grad))
 class GlobalMagGradValMin(GlobalMagGradValF):
     def __init__(self, model, inputs=None, outputs=None, compression=1, **pruning_params):
         # following Belay's original notation for beta and gamma
@@ -100,7 +102,7 @@ class GlobalMagGradValMin(GlobalMagGradValF):
 
         super().__init__(model, inputs, outputs, compression, **pruning_params)
 
-
+# use F(mag, train_grad, val_grad) = abs(mag^beta * train_grad^gamma * val_grad^delta)
 class GlobalMagGradValProd(GlobalMagGradValF):
     def __init__(self, model, inputs=None, outputs=None, compression=1, **pruning_params):
         # following Belay's original notation for beta and gamma
@@ -116,7 +118,11 @@ class GlobalMagGradValProd(GlobalMagGradValF):
 
         super().__init__(model, inputs, outputs, compression, **pruning_params)
 
-
+# specify mag_threshold/mag_fraction, train_grad_threshold/train_grad_fraction, val_grad_threshold/val_grad_fraction
+# e.g. mag_threshold: if abs(mag) < mag_threshold, then ban
+# e.g. mag_fraction: if abs(mag) < mag_fraction quantile, then ban
+# also specify union_method: all => ban if all criteria ban, any => ban if any criteria ban
+# e.g. Belay with beta = 0.05, gamma = 0.05: mag_threshold = 0.05, train_grad_threshold = 0.05, val_grad_fraction = 1.0
 class GlobalMagGradValSeparate(GlobalMagGradValBased):
     def __init__(self, model, inputs=None, outputs=None, compression=1, **pruning_params):
         super().__init__(model, inputs, outputs, compression, **pruning_params)
@@ -187,7 +193,14 @@ class GlobalMagGradValSeparate(GlobalMagGradValBased):
         return masks
 
 
-# set fraction for magnitude, train_grad and (optionally) val_grad basing on the total compression level
+# used for modification of Belay
+# set val_grad_threshold or val_grad_fraction (see GlobalMagGradValSeparate)
+# then mag_threshold and train_grad_threshold will be found using binary search, so that the total model compression
+# is equal to passed parameter compression
+# also there is attribute have_common_threshold: find common threshold with binary search for all layers,
+# or search own threshold for each layer
+# original Belay: have_common_threshold = True, compression ~= 2, val_grad_fraction = 1.0
+# modified Belay:have_common_threshold = True, compression ~= 2, val_grad_fraction = [0.99, 0.95, 0.9]
 class GlobalMagGradTopVal(GlobalMagGradValBased):
     def __init__(self, model, inputs=None, outputs=None, compression=1, **pruning_params):
         super().__init__(model, inputs, outputs, compression, **pruning_params)

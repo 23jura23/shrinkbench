@@ -54,6 +54,16 @@ for model, dataset in [("cifar100_resnet20", "CIFAR100"),("vgg_bn_drop", "CIFAR1
                                     train_kwargs={'epochs': num_epochs})
         exp_sum.run()
 
+        # # abs(mag + grad)
+        exp_sum = PruningExperiment(dataset=dataset,
+                                    model=model,
+                                    strategy="GlobalMagGradValSum",
+                                    strategy_name=f"Sum no val",
+                                    compression=c,
+                                    strategy_kwargs={"beta": 1.0, "gamma": 1.0, "delta": 0.0},
+                                    train_kwargs={'epochs': num_epochs})
+        exp_sum.run()
+
         # # abs((mag * grad)/(val_grad))
         exp_inv_prod = PruningExperiment(dataset=dataset,
                                          model=model,
@@ -75,10 +85,10 @@ for model, dataset in [("cifar100_resnet20", "CIFAR100"),("vgg_bn_drop", "CIFAR1
                                          train_kwargs={'epochs': num_epochs})
         exp_inv_prod.run()
 
-        # original Baley idea: https://www.aaai.org/AAAI22Papers/UC-00015-BelayK.pdf
+        # modified Baley idea: https://www.aaai.org/AAAI22Papers/UC-00015-BelayK.pdf
         # ban |value| < beta && |grad| < gamma, |val_grad| < delta; beta, gamma and delta are computed based on compression
-        # delta is big so small deltas are banned and big are not
-        for val_grad_fraction in [0.9]:  # , 0.95, 0.99]:
+        # delta is big so small deltas are banned and big are not (keeping 10% big val_grad === removing 90% small val_grad)
+        for val_grad_fraction in [0.9, 0.95, 0.99]:
             exp_inv_prod = PruningExperiment(dataset=dataset,
                                              model=model,
                                              strategy="GlobalMagGradTopVal",
